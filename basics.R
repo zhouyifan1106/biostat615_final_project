@@ -19,7 +19,7 @@ library(microbenchmark) # for speed comparison when writing different approaches
 sparsity <- function(x) {
   n = dim(x)[1]
   p = dim(x)[2]
-  return (Matrix::nnzero(x)/n/p)
+  return (1-Matrix::nnzero(x)/n/p)
 }
 
 # compute colMeans, either with or without zeroes included.
