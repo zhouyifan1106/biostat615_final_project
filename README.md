@@ -4,6 +4,7 @@
 - sparse.colMeans: compute colMeans, either with or without zeroes included
 - sparse.rowMeans: compute rowMeans, either with or without zeroes included
 - sparse.quantile: compute quantile with or without zeroes included(use sparseMatrix slicing w/ "drop=FALSE" to keep the sparse form and prevent memory overflow)
+- sparse.summary: similar to the summary() function in base package, compute summary statistics for a sparseMatrix (with or without zeroes) including including sparsity, mean and quartiles. This function does not work for dense matrix.
 
 ### Covariance/Correlation of a Matrix object (dense or sparse)
 - sparse.covariance
