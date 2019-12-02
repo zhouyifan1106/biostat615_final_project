@@ -7,4 +7,4 @@
 ### Covariance/Correlation of a Matrix object (dense or sparse)
 - sparse.covariance
 - sparse.correlation (from scratch)
-- sparse.correlation2 (sparse.covariance + Matrix::cov2cor(cov))
+- sparse.correlation2 (sparse.covariance + Matrix::cov2cor(cov), two approachces with close time performance)
