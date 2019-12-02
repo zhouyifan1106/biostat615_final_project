@@ -40,7 +40,7 @@ sparse.rowMeans <- function(x,zero.omit = FALSE,na.rm=FALSE,dims=1,sparseResult=
   }
 }
 
-# x should be in class "sparseVector", do "sparse_matrix[,i,drop=FALSE]" to keep sparse format
+# Do "sparse_matrix[,i,drop=FALSE]" to keep sparse format
 sparse.quantile <- function(sparse_vector,probs = seq(0, 1, 0.25),zero.omit = FALSE) {
   if (!zero.omit) {
     # consider zeroes
