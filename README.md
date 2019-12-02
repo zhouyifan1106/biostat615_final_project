@@ -1,1 +1,1 @@
-# biostat615_final_project
+# Biostatistics 615 Final Project - Sparse Matrix Statistics and Modeling
