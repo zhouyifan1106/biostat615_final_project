@@ -40,6 +40,17 @@ sparse.rowMeans <- function(x,zero.omit = FALSE,na.rm=FALSE,dims=1,sparseResult=
   }
 }
 
+# x should be in class "sparseVector", do "sparse_matrix[,i,drop=FALSE]" to keep sparse format
+sparse.quantile <- function(sparse_vector,probs = seq(0, 1, 0.25),zero.omit = FALSE) {
+  if (!zero.omit) {
+    # consider zeroes
+    return (quantile(as.vector(sparse_vector),probs))
+  } else {
+    # remove zeroes before quantile
+    return (quantile(sparse_vector@x,probs))
+  }
+}
+
 # Covariance for Matrix object (accepts both dense and sparse input, although dense matrix should probably use cov() from base)
 sparse.covariance <- function(x){
   n = nrow(x)
