@@ -23,20 +23,20 @@ sparsity <- function(x) {
 }
 
 # compute colMeans, either with or without zeroes included.
-sparse.colMeans <- function(x,zero.omit = FALSE,na.rm=FALSE,dims=1,sparseResult=FALSE) {
+sparse.colMeans <- function(x,zero.omit = FALSE,na.rm=FALSE,dims=1) {
   if (!zero.omit) {
-    return (Matrix::colMeans(x,na.rm,dims,sparseResult))
+    return (Matrix::colMeans(x,na.rm,dims))
   } else {
-    return (Matrix::colSums(x,na.rm,dims,sparseResult)/Matrix::colSums(abs(sign(x)),na.rm,dims,sparseResult))
+    return (Matrix::colSums(x,na.rm,dims)/Matrix::colSums(abs(sign(x)),na.rm,dims))
   }
 }
 
 # compute rowMeans, either with or without zeroes included.
-sparse.rowMeans <- function(x,zero.omit = FALSE,na.rm=FALSE,dims=1,sparseResult=FALSE) {
+sparse.rowMeans <- function(x,zero.omit = FALSE,na.rm=FALSE,dims=1) {
   if (!zero.omit) {
-    return (Matrix::rowMeans(x,na.rm,dims,sparseResult))
+    return (Matrix::rowMeans(x,na.rm,dims))
   } else {
-    return (Matrix::rowSums(x,na.rm,dims,sparseResult)/Matrix::rowSums(abs(sign(x)),na.rm,dims,sparseResult))
+    return (Matrix::rowSums(x,na.rm,dims,sparseResult)/Matrix::rowSums(abs(sign(x)),na.rm,dims))
   }
 }
 
@@ -49,6 +49,22 @@ sparse.quantile <- function(sparse_vector,probs = seq(0, 1, 0.25),zero.omit = FA
     # remove zeroes before quantile
     return (quantile(sparse_vector@x,probs))
   }
+}
+
+# print out sparsity,mean and quantile for each column of the sparseMatrix (does not work for dense matrix)
+sparse.summary <- function(x,zero.omit=FALSE) {
+  # variable summary
+  sparse.variable_summary <- function(variable,zero.omit=FALSE) {
+    quantiles = sparse.quantile(variable,zero.omit = zero.omit)
+    sparsity = sparsity(variable)
+    return (c(quantiles,sparsity))
+  }
+  output = sapply(1:ncol(x),function (i) {sparse.variable_summary(x[,i,drop=FALSE],zero.omit = zero.omit)})
+  mean = sparse.colMeans(x,zero.omit = zero.omit)
+  output = rbind(mean,output)
+  rownames(output) = c("Mean","Min.","1st Qu.","Median","3rd Qu.","Max.","sparsity")
+  output = output[c(7,2,3,4,1,5,6),]
+  return (output)
 }
 
 # Covariance for Matrix object (accepts both dense and sparse input, although dense matrix should probably use cov() from base)
