@@ -18,8 +18,8 @@ library(microbenchmark) # for speed comparison when writing different approaches
 # computes sparsity of dense/sparse matrix
 sparsity <- function(x) {
   n = dim(x)[1]
-  m = dim(x)[2]
-  return (Matrix::nnzero(x)/n/m)
+  p = dim(x)[2]
+  return (Matrix::nnzero(x)/n/p)
 }
 
 # compute colMeans, either with or without zeroes included.
