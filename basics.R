@@ -94,3 +94,43 @@ sparse.correlation2 <- function(x) {
   covariance = sparse.covariance(x)
   return (Matrix::cov2cor(covariance))
 }
+
+# sparse linear regression with optional 2-way interaction 
+# methods available: qr, svd, chol
+sparse.lm <- function(X,Y,interaction=FALSE,method = "qr"){
+  Y = as.matrix(Y)
+  if (interaction && ncol(X) > 1) {
+    # add 2-way interaction terms
+    sparse.cbind <- function (...) {
+      input = lapply(list(...),as,"sparseVector" )
+      l = unique(sapply(input,length))
+      return(sparseMatrix(x=unlist(lapply(input,slot,"x")), i=unlist(lapply(input,slot,"i")), 
+                          p=c(0,cumsum(sapply(input,function(x){length(x@x)}))),dims=c(l,length(input))))
+    }
+    X_interaction = unlist(lapply(1:(ncol(X)-1), function(i) 
+      lapply((i+1):ncol(X), function(j) as(X[,i]*X[,j],"sparseVector"))))
+    X_interaction = do.call(sparse.cbind,X_interaction)
+    X = cbind(X,X_interaction)
+  }
+  # add intercept term
+  X = cbind(rep(1,nrow(X)),X)
+  # start beta computation
+  p = ncol(X) 
+  n = nrow(X)
+  if (method == "qr") {
+    QR = qr.default(X)
+    b = backsolve(QR$qr, qr.qty(QR, Y))
+  } else if (method == "svd") {
+    tXX = crossprod(X) 
+    SVD = svd(tXX)
+    inv = SVD$v%*%diag(1/SVD$d)%*%t(SVD$u)
+    b = inv %*% (t(X) %*% Y)
+  } else { #chol
+    tXX = crossprod(X) 
+    tXY = crossprod(X,Y)
+    R = chol(tXX)
+    z = forwardsolve(R,tXY,upper.tri=TRUE,transpose=TRUE)
+    b = backsolve(R,z)
+  }
+  return (b)
+}
