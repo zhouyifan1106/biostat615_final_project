@@ -95,7 +95,17 @@ sparse.correlation2 <- function(x) {
   return (Matrix::cov2cor(covariance))
 }
 
-# sparse linear regression with optional 2-way interaction 
+set.seed(1000L) 
+n = 100000L
+p = 20L 
+q = 8L
+R2 = 0.9
+X = rsparsematrix(nrow = n,ncol = p,nnz = n*0.3*p)
+beta = sample(c(runif(q/2,min=2,max=5),runif(q/2,min=-5,max=-2), rep(0,p-q)))
+mu = X%*%beta
+sigma = sqrt(var(mu[,1])/R2*(1-R2)) 
+Y = mu + rnorm(n,sd=sigma)
+# X
 # methods available: qr, svd, chol
 sparse.lm <- function(X,Y,interaction=FALSE,method = "qr"){
   Y = as.matrix(Y)
@@ -119,7 +129,7 @@ sparse.lm <- function(X,Y,interaction=FALSE,method = "qr"){
   n = nrow(X)
   if (method == "qr") {
     QR = qr.default(X)
-    b = backsolve(QR$qr, qr.qty(QR, Y))
+    b = backsolve(QR$qr, qr.qty(QR, as.matrix(Y)))
   } else if (method == "svd") {
     tXX = crossprod(X) 
     SVD = svd(tXX)
