@@ -1,146 +1,131 @@
 # import dependencies
 library(Matrix)
-library(microbenchmark) # for speed comparison when writing different approaches
 
-## A sparse matrix example to start with
-# n <- 10000
-# p <- 5000
-# x <- matrix(rnorm(n * p), n, p)
-# x <- matrix(rbinom(n*p, 80, 0.4),n,p)
-# iz <- sample(1:(n * p),size = n * p * 0.85,replace = FALSE)
-# x[iz] <- 0
-# sx <- Matrix(x, sparse = TRUE)
+######## A sparse matrix example to start with ########
+# x: dense form
+# sx: sparse form
+n <- 1000000
+p <- 5
+x <- matrix(rnorm(n * p), n, p)
+x <- matrix(rbinom(n*p, 80, 0.4),n,p)
+iz <- sample(1:(n * p),size = n * p * 0.85,replace = FALSE)
+x[iz] <- 0
+sx <- Matrix(x, sparse = TRUE)
 
-############# Some useful functions in "Matrix" that can be used ###############
-## colSums, rowSums, colMeans & rowMeans already implemented (with 0 included for calculation)
-## mean, sum already implemented
 
-# computes sparsity of dense/sparse matrix
+########################################## FUNCTIONS ################################################
+
+###################  sparsity  ###################
+## x: dense or sparse Matrix object
 sparsity <- function(x) {
   n = dim(x)[1]
   p = dim(x)[2]
   return (1-Matrix::nnzero(x)/n/p)
 }
 
-# compute colMeans, either with or without zeroes included.
-sparse.colMeans <- function(x,zero.omit = FALSE,na.rm=FALSE,dims=1) {
+###################  colMeans  ###################
+## x: dense or sparse Matrix object
+## zero.omit: if TRUE, only nonzero values are used for computation
+## na.rm: if TRUE, omit NA from calculations
+sparse.colMeans <- function(x,zero.omit = FALSE,na.rm=FALSE) {
   if (!zero.omit) {
-    return (Matrix::colMeans(x,na.rm,dims))
+    return (Matrix::colMeans(x,na.rm))
+  } else if (is(x,'sparseMatrix')) {
+    return (Matrix::colSums(x,na.rm,sparseResult)/Matrix::colSums(abs(sign(x)),na.rm,sparseResult))
   } else {
-    return (Matrix::colSums(x,na.rm,dims)/Matrix::colSums(abs(sign(x)),na.rm,dims))
+    return (Matrix::colSums(x,na.rm)/Matrix::colSums(abs(sign(x)),na.rm))
   }
 }
 
-# compute rowMeans, either with or without zeroes included.
-sparse.rowMeans <- function(x,zero.omit = FALSE,na.rm=FALSE,dims=1) {
+################### rowMeans  ###################
+## x: dense or sparse Matrix object
+## zero.omit: if TRUE, only nonzero values are used for computation
+## na.rm: if TRUE, omit NA from calculations
+sparse.rowMeans <- function(x,zero.omit = FALSE,na.rm=FALSE) {
   if (!zero.omit) {
-    return (Matrix::rowMeans(x,na.rm,dims))
+    return (Matrix::rowMeans(x,na.rm))
+  } else if (is(x,'sparseMatrix')) {
+    # keep result as sparse for memory saving
+    return (Matrix::rowSums(x,na.rm,sparseResult)/Matrix::rowSums(abs(sign(x)),na.rm,sparseResult))
   } else {
-    return (Matrix::rowSums(x,na.rm,dims,sparseResult)/Matrix::rowSums(abs(sign(x)),na.rm,dims))
+    # dense matrix
+    return (Matrix::rowSums(x,na.rm)/Matrix::rowSums(abs(sign(x)),na.rm))
   }
 }
 
-# Do "sparse_matrix[,i,drop=FALSE]" to keep sparse format
-sparse.quantile <- function(sparse_vector,probs = seq(0, 1, 0.25),zero.omit = FALSE) {
+################### quantile ###################
+## x: dense or sparse Matrix object
+## probs: numeric vector of probabilities with values in [0,1]
+## zero.omit: if TRUE, only nonzero values are used for computation
+sparse.quantile <- function(x,probs = seq(0,1,0.25),zero.omit = FALSE) {
   if (!zero.omit) {
-    # consider zeroes
-    return (quantile(as.vector(sparse_vector),probs))
+    return (quantile(as.vector(x),probs))
+  } else if (is(x, 'sparseMatrix')) {
+    # remove zero for sparse matrix
+    return (quantile(x@x,probs))
   } else {
-    # remove zeroes before quantile
-    return (quantile(sparse_vector@x,probs))
+    # remove zero for dense matrix
+    return (quantile(x[-which(x==0)],probs))
   }
 }
 
-# print out sparsity,mean and quantile for each column of the sparseMatrix (does not work for dense matrix)
+################### summary (sparsity,min,Q1,median,mean,Q3,max) ###################
+## x: dense or sparse Matrix object
+## zero.omit: if TRUE, include zero values for summary statistics
 sparse.summary <- function(x,zero.omit=FALSE) {
-  # variable summary
+  # computate QUANTILE & SPARSITY for each variable
   sparse.variable_summary <- function(variable,zero.omit=FALSE) {
     quantiles = sparse.quantile(variable,zero.omit = zero.omit)
     sparsity = sparsity(variable)
     return (c(quantiles,sparsity))
   }
+  # use "drop=FALSE" to keep sparse format during slicing
   output = sapply(1:ncol(x),function (i) {sparse.variable_summary(x[,i,drop=FALSE],zero.omit = zero.omit)})
+  
+  # compute MEAN for each variable
   mean = sparse.colMeans(x,zero.omit = zero.omit)
+  # combine outputs and sort columns
   output = rbind(mean,output)
   rownames(output) = c("Mean","Min.","1st Qu.","Median","3rd Qu.","Max.","sparsity")
   output = output[c(7,2,3,4,1,5,6),]
   return (output)
 }
 
-# Covariance for Matrix object (accepts both dense and sparse input, although dense matrix should probably use cov() from base)
+################### covariance  ###################
+## x: dense or sparse Matrix object
 sparse.covariance <- function(x){
-  n = nrow(x)
-  cSums = colSums(x)
-  cMeans = colMeans(x)
-  covariance = tcrossprod(cMeans,(-2*cSums+n*cMeans))+as.matrix(crossprod(x))
-  return (covariance/(n-1))
+  if (is(x,'sparseMatrix')) {
+    n = nrow(x)
+    cSums = colSums(x)
+    cMeans = colMeans(x)
+    covariance = tcrossprod(cMeans,(-2*cSums+n*cMeans))+as.matrix(crossprod(x))
+    return (covariance/(n-1))
+  } else {
+    return (cov(x))
+  }
 }
 
-## Correlation for Matrix object -- accepts both dense and sparse input, although dense matrix should probably use cov() from base
-## two approaches have almost identital time performance
-
-# Correlation approach 1
+################### correlation  ###################
+## Two implementations, almost identical runtime
+## x: dense or sparse Matrix object
+# Approach 1 -- implement from scratch
 sparse.correlation <- function(x) {
-  n = nrow(x)
-  cSums = colSums(x)
-  cMeans = colMeans(x)
-  covariance = tcrossprod(cMeans,(-2*cSums+n*cMeans))+as.matrix(crossprod(x))
-  correlation = covariance/crossprod(t(sqrt(diag(covariance))))
-  return (correlation)
+  if (is(x,'sparseMatrix')) {
+    n = nrow(x) 
+    cSums = colSums(x)
+    cMeans = colMeans(x)
+    covariance = tcrossprod(cMeans,(-2*cSums+n*cMeans))+as.matrix(crossprod(x))
+    return (covariance/crossprod(t(sqrt(diag(covariance)))))
+  } else {
+    return (cor(x))
+  }
 }
-
-# Correlation approach 2
+# Approach 2 -- use previously implemented "sparse.covariance" and Matrix::cov2cor
 sparse.correlation2 <- function(x) {
-  covariance = sparse.covariance(x)
-  return (Matrix::cov2cor(covariance))
-}
-
-set.seed(1000L) 
-n = 100000L
-p = 20L 
-q = 8L
-R2 = 0.9
-X = rsparsematrix(nrow = n,ncol = p,nnz = n*0.3*p)
-beta = sample(c(runif(q/2,min=2,max=5),runif(q/2,min=-5,max=-2), rep(0,p-q)))
-mu = X%*%beta
-sigma = sqrt(var(mu[,1])/R2*(1-R2)) 
-Y = mu + rnorm(n,sd=sigma)
-# X
-# methods available: qr, svd, chol
-sparse.lm <- function(X,Y,interaction=FALSE,method = "qr"){
-  Y = as.matrix(Y)
-  if (interaction && ncol(X) > 1) {
-    # add 2-way interaction terms
-    sparse.cbind <- function (...) {
-      input = lapply(list(...),as,"sparseVector" )
-      l = unique(sapply(input,length))
-      return(sparseMatrix(x=unlist(lapply(input,slot,"x")), i=unlist(lapply(input,slot,"i")), 
-                          p=c(0,cumsum(sapply(input,function(x){length(x@x)}))),dims=c(l,length(input))))
-    }
-    X_interaction = unlist(lapply(1:(ncol(X)-1), function(i) 
-      lapply((i+1):ncol(X), function(j) as(X[,i]*X[,j],"sparseVector"))))
-    X_interaction = do.call(sparse.cbind,X_interaction)
-    X = cbind(X,X_interaction)
+  if (is(x,'sparseMatrix')) {
+    covariance = sparse.covariance(x)
+    return (Matrix::cov2cor(covariance))
+  } else {
+    return (cor(x))
   }
-  # add intercept term
-  X = cbind(rep(1,nrow(X)),X)
-  # start beta computation
-  p = ncol(X) 
-  n = nrow(X)
-  if (method == "qr") {
-    QR = qr.default(X)
-    b = backsolve(QR$qr, qr.qty(QR, as.matrix(Y)))
-  } else if (method == "svd") {
-    tXX = crossprod(X) 
-    SVD = svd(tXX)
-    inv = SVD$v%*%diag(1/SVD$d)%*%t(SVD$u)
-    b = inv %*% (t(X) %*% Y)
-  } else { #chol
-    tXX = crossprod(X) 
-    tXY = crossprod(X,Y)
-    R = chol(tXX)
-    z = forwardsolve(R,tXY,upper.tri=TRUE,transpose=TRUE)
-    b = backsolve(R,z)
-  }
-  return (b)
 }
