@@ -9,7 +9,7 @@
 ## There are two ways of computing PCA once covariance matrix is ready -- getting eigenvectors and eigenvalues (package princomp) and doing SVD (package prcomp).
 ## We use the SVD approach, since svd() allows you to specify the maxinum number of eigenvectors/eigenvalues.
 
-truncated_pca <- function(x, number_of_pc = 5,retx = TRUE, center = TRUE, scale. = FALSE, tol = NULL, ...){
+truncated.pca <- function(x, number_of_pc = 5,retx = TRUE, center = TRUE, scale. = FALSE, tol = NULL, ...){
     ## Sparse matrix after centering will be dense, so we do not worry too much and directly convert the matrix to dense form
     x <- as.matrix(x)
     # scale and center the data as needed
