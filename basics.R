@@ -129,3 +129,13 @@ sparse.correlation2 <- function(x) {
     return (cor(x))
   }
 }
+
+################### apply  ###################
+## the sparse version of "apply"
+sparse.apply <- function(X, FUN) {
+  res = as.numeric(ncol(X))
+  X2 = as(X, "dgTMatrix")
+  tmp = tapply(X2@x, X2@j, FUN)
+  res[as.integer(names(tmp))+1] = tmp
+  res
+}
