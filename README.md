@@ -10,5 +10,8 @@
 - **sparse.covariance**
 - **sparse.correlation** (2 implementations)
 
-### Sparse Linear Regression with optional 2-way interaction
+### Sparse Linear Regression with optional 2-way interaction and user-defined sparsity threshold for variable selection
 - sparse.lm
+
+### Truncated PCA for extremely sparse matrices with large number of features
+- truncated_pca
