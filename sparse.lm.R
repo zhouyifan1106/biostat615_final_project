@@ -1,3 +1,6 @@
+## Author: Yvonne Zhou
+
+## sample data
 set.seed(1000L) 
 n = 10000L
 p = 10L 
