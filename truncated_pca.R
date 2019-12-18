@@ -19,7 +19,7 @@ truncated.pca <- function(x, number_of_pc = 5,retx = TRUE, center = TRUE, scale.
     if(any(sc == 0))
       stop("cannot rescale a constant/zero column to unit variance")
     # only compute the top "number_of_pc" PCs for the output
-    s <- svd(x,number_of_pc,number_of_pc)
+    s <- svd(x,0,number_of_pc)
     s$d <- s$d/sqrt(max(1, nrow(x) - 1))
     if (!is.null(tol)) {
       rank <- sum(s$d > (s$d[1L]*tol))
