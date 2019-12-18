@@ -1,4 +1,6 @@
 ################### Trunccated PCA ###################
+##### Author: Yvonne Zhou
+
 ## This is a modification of the prcomp.default() function inside stats package.
 
 ## for a n*p matrix, the number of PCs in the output will be min(n,p). When p is large, the computation is very expensive.
